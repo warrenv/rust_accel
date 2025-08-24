@@ -2,6 +2,7 @@ services:
   app-service:
     build:
       context: ./app-service # specify directory where local Dockerfile is located
+
   auth-service:
     build:
       context: ./auth-service # specify directory where local Dockerfile is located
