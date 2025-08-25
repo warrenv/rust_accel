@@ -3,9 +3,8 @@ use auth_service::{routes::SignupResponse, ErrorResponse};
 
 #[tokio::test]
 async fn should_return_422_if_malformed_input() {
+    let expected = 422;
     let app = TestApp::new().await;
-
-    let random_email = get_random_email();
 
     let test_cases = [
         // missing email
@@ -15,12 +14,12 @@ async fn should_return_422_if_malformed_input() {
         }),
         // missing password
         serde_json::json!({
-            "email": random_email,
+            "email": get_random_email(),
             "requires2FA": true
         }),
         // missing requires2FA
         serde_json::json!({
-            "email": random_email,
+            "email": get_random_email(),
             "password": "password123",
         }),
     ];
@@ -29,7 +28,7 @@ async fn should_return_422_if_malformed_input() {
         let actual = app.post_signup(&test_case).await;
         assert_eq!(
             actual.status().as_u16(),
-            422,
+            expected,
             "Failed for input: {:?}",
             test_case
         );
@@ -38,6 +37,7 @@ async fn should_return_422_if_malformed_input() {
 
 #[tokio::test]
 async fn should_return_201_if_valid_input() {
+    let expected = 201;
     let app = TestApp::new().await;
     let user = serde_json::json!({
         "email": get_random_email(),
@@ -49,7 +49,7 @@ async fn should_return_201_if_valid_input() {
 
     assert_eq!(
         actual.status().as_u16(),
-        201,
+        expected,
         "Failed for input: {:?}",
         user
     );
@@ -76,10 +76,6 @@ async fn should_return_400_if_invalid_input() {
     // The input is considered invalid if:
     // - The email is empty or does not contain '@'
     // - The password is less than 8 characters
-
-    // Create an array of invalid inputs. Then, iterate through the array and
-    // make HTTP calls to the signup route. Assert a 400 HTTP status code is returned.
-    //todo!()
 
     let app = TestApp::new().await;
 
