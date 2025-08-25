@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
+use crate::domain::{Email, Password};
 use crate::domain::{User, UserStore, UserStoreError};
 
 #[derive(Default)]
 pub struct HashmapUserStore {
-    users: HashMap<String, User>,
+    users: HashMap<Email, User>,
 }
 
 #[async_trait::async_trait]
@@ -18,17 +19,21 @@ impl UserStore for HashmapUserStore {
         }
     }
 
-    async fn get_user(&self, email: &str) -> Result<User, UserStoreError> {
+    async fn get_user(&self, email: &Email) -> Result<User, UserStoreError> {
         match self.users.get(email) {
             Some(u) => Ok(u.clone()),
             None => Err(UserStoreError::UserNotFound),
         }
     }
 
-    async fn validate_user(&self, email: &str, password: &str) -> Result<(), UserStoreError> {
+    async fn validate_user(
+        &self,
+        email: &Email,
+        password: &Password,
+    ) -> Result<(), UserStoreError> {
         match self.users.get(email) {
             Some(user) => {
-                if user.password == password {
+                if user.password.as_ref() == password.as_ref() {
                     Ok(())
                 } else {
                     Err(UserStoreError::InvalidCredentials)
@@ -48,8 +53,8 @@ mod tests {
         let expected = Ok(());
         let mut store = HashmapUserStore::default();
         let user = User::new(
-            "user@example.com".to_owned(),
-            "password123".to_owned(),
+            Email::parse("user@example.com".to_owned()).unwrap(),
+            Password::parse("password123".to_owned()).unwrap(),
             true,
         );
 
@@ -63,8 +68,8 @@ mod tests {
         let expected = Err(UserStoreError::UserAlreadyExists);
         let mut store = HashmapUserStore::default();
         let user = User::new(
-            "user@example.com".to_owned(),
-            "password123".to_owned(),
+            Email::parse("user@example.com".to_owned()).unwrap(),
+            Password::parse("password123".to_owned()).unwrap(),
             true,
         );
 
@@ -77,8 +82,8 @@ mod tests {
     #[tokio::test]
     async fn test_get_user_succeeds_when_user_exists() {
         let expected = User::new(
-            "user@example.com".to_owned(),
-            "password123".to_owned(),
+            Email::parse("user@example.com".to_owned()).unwrap(),
+            Password::parse("password123".to_owned()).unwrap(),
             true,
         );
         let mut store = HashmapUserStore::default();
@@ -94,8 +99,8 @@ mod tests {
         let expected = Err(UserStoreError::UserNotFound);
         let store = HashmapUserStore::default();
         let user = User::new(
-            "user@example.com".to_owned(),
-            "password123".to_owned(),
+            Email::parse("user@example.com".to_owned()).unwrap(),
+            Password::parse("password123".to_owned()).unwrap(),
             true,
         );
 
@@ -108,8 +113,8 @@ mod tests {
     async fn test_validate_user_when_user_is_valid() {
         let expected = Ok(());
         let user = User::new(
-            "user@example.com".to_owned(),
-            "password123".to_owned(),
+            Email::parse("user@example.com".to_owned()).unwrap(),
+            Password::parse("password123".to_owned()).unwrap(),
             true,
         );
         let mut store = HashmapUserStore::default();
@@ -124,8 +129,8 @@ mod tests {
     async fn test_validate_user_when_user_does_not_exist() {
         let expected = Err(UserStoreError::UserNotFound);
         let user = User::new(
-            "user@example.com".to_owned(),
-            "password123".to_owned(),
+            Email::parse("user@example.com".to_owned()).unwrap(),
+            Password::parse("password123".to_owned()).unwrap(),
             true,
         );
         let store = HashmapUserStore::default();
@@ -139,15 +144,18 @@ mod tests {
     async fn test_validate_user_when_password_does_not_match() {
         let expected = Err(UserStoreError::InvalidCredentials);
         let user = User::new(
-            "user@example.com".to_owned(),
-            "password123".to_owned(),
+            Email::parse("user@example.com".to_owned()).unwrap(),
+            Password::parse("password123".to_owned()).unwrap(),
             true,
         );
         let mut store = HashmapUserStore::default();
 
         let _ = store.add_user(user.clone()).await;
         let actual = store
-            .validate_user(&user.email, &"non_matchin_password")
+            .validate_user(
+                &user.email,
+                &Password::parse("non_matching_password".to_string()).unwrap(),
+            )
             .await;
 
         assert_eq!(actual, expected);
