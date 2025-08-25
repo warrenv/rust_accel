@@ -1,8 +1,9 @@
 use reqwest::Url;
 
+use crate::helpers::get_random_email;
 use crate::helpers::TestApp;
 use auth_service::domain::email::Email;
-use auth_service::utils::generate_auth_cookie;
+use auth_service::utils::auth::generate_auth_cookie;
 use auth_service::{utils::constants::JWT_COOKIE_NAME, ErrorResponse};
 
 #[tokio::test]
@@ -38,23 +39,56 @@ async fn should_return_401_if_invalid_token() {
 
 #[tokio::test]
 async fn should_return_200_if_valid_jwt_cookie() {
-    let expected = 200;
     let app = TestApp::new().await;
 
-    let auth_cookie = generate_auth_cookie(&Email::parse("foo@example.com".to_owned()).unwrap())
-        .unwrap()
-        .to_string();
-    println!("auth_cookie: {:?}", auth_cookie);
+    let random_email = get_random_email();
 
-    app.cookie_jar.add_cookie_str(
-        &auth_cookie,
-        &Url::parse("http://127.0.0.1").expect("Failed to parse URL"),
-    );
+    let signup_body = serde_json::json!({
+        "email": random_email,
+        "password": "password123",
+        "requires2FA": false
+    });
+
+    let response = app.post_signup(&signup_body).await;
+
+    assert_eq!(response.status().as_u16(), 201);
+
+    let login_body = serde_json::json!({
+        "email": random_email,
+        "password": "password123",
+    });
+
+    let response = app.post_login(&login_body).await;
+
+    assert_eq!(response.status().as_u16(), 200);
+
+    let auth_cookie = response
+        .cookies()
+        .find(|cookie| cookie.name() == JWT_COOKIE_NAME)
+        .expect("No auth cookie found");
+
+    assert!(!auth_cookie.value().is_empty());
+
+    let token = auth_cookie.value();
 
     let response = app.post_logout().await;
-    let actual = response.status().as_u16();
 
-    assert_eq!(actual, expected,);
+    assert_eq!(response.status().as_u16(), 200);
+
+    let auth_cookie = response
+        .cookies()
+        .find(|cookie| cookie.name() == JWT_COOKIE_NAME)
+        .expect("No auth cookie found");
+
+    assert!(auth_cookie.value().is_empty());
+
+    let banned_token_store = app.banned_token_store.read().await;
+    let contains_token = banned_token_store
+        .contains_token(token)
+        .await
+        .expect("Failed to check if token is banned");
+
+    assert!(contains_token);
 }
 
 #[tokio::test]
