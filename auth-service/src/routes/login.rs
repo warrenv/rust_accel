@@ -54,6 +54,7 @@ pub async fn login(
     let jar = jar.add(auth_cookie);
 
     // Handle request based on user's 2FA configuration
+    println!("REQUIRES 2fa: {:?}", user.requires_2fa);
     match user.requires_2fa {
         true => handle_2fa(&user.email, &state, jar).await,
         false => handle_no_2fa(&user.email, jar).await,
@@ -85,8 +86,24 @@ async fn handle_2fa(
 
     {
         let two_fa_code_store = &mut state.two_fa_code_store.write().await;
+
         if let Err(_) = two_fa_code_store
-            .add_code(email.clone(), login_attempt_id.clone(), two_fa_code)
+            .add_code(email.clone(), login_attempt_id.clone(), two_fa_code.clone())
+            .await
+        {
+            return (jar, Err(AuthAPIError::UnexpectedError));
+        }
+    }
+
+    {
+        let email_client = &mut state.email_client.read().await;
+
+        if let Err(_) = email_client
+            .send_email(
+                email,
+                "Here is your 2FA code",
+                &two_fa_code.clone().as_ref(),
+            )
             .await
         {
             return (jar, Err(AuthAPIError::UnexpectedError));
@@ -98,7 +115,9 @@ async fn handle_2fa(
         login_attempt_id: login_attempt_id.as_ref().to_string(),
     }));
 
-    (jar, Ok((StatusCode::OK, response)))
+    //    (jar, Ok((StatusCode::OK, response)))
+
+    (jar, Ok((StatusCode::PARTIAL_CONTENT, response)))
 }
 
 async fn handle_no_2fa(
