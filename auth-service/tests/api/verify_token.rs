@@ -6,7 +6,7 @@ use auth_service::{utils::constants::JWT_COOKIE_NAME, ErrorResponse};
 #[tokio::test]
 async fn should_return_422_if_malformed_input() {
     let expected = 422;
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     let verify_token_body = serde_json::json!({});
 
@@ -19,7 +19,7 @@ async fn should_return_422_if_malformed_input() {
 #[tokio::test]
 async fn should_return_200_valid_token() {
     let expected = 200;
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     let auth_cookie =
         generate_auth_cookie(&Email::parse("foo@example.com".to_owned()).unwrap()).unwrap();
@@ -32,12 +32,14 @@ async fn should_return_200_valid_token() {
     let actual = response.status().as_u16();
 
     assert_eq!(actual, expected,);
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_401_if_invalid_token() {
     let expected = 401;
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     let auth_cookie =
         generate_auth_cookie(&Email::parse("foo@example.com".to_owned()).unwrap()).unwrap();
@@ -50,11 +52,13 @@ async fn should_return_401_if_invalid_token() {
     let actual = response.status().as_u16();
 
     assert_eq!(actual, expected,);
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_401_if_banned_token() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     let random_email = get_random_email();
 
@@ -108,4 +112,6 @@ async fn should_return_401_if_banned_token() {
             .error,
         "Invalid auth token".to_owned()
     );
+
+    app.clean_up().await;
 }

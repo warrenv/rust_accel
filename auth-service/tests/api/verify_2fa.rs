@@ -9,7 +9,7 @@ use crate::helpers::{get_random_email, TestApp};
 
 #[tokio::test]
 async fn should_return_422_if_malformed_input() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     let random_email = get_random_email();
     let login_attempt_id = LoginAttemptId::default().as_ref().to_owned();
@@ -49,11 +49,13 @@ async fn should_return_422_if_malformed_input() {
             test_case
         );
     }
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_400_if_invalid_input() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     let random_email = get_random_email();
     let login_attempt_id = LoginAttemptId::default().as_ref().to_owned();
@@ -86,26 +88,36 @@ async fn should_return_400_if_invalid_input() {
             test_case
         );
     }
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_401_if_incorrect_credentials() {
     //TODO:    todo!()
+
+    //app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_401_if_old_code() {
     // Call login twice. Then, attempt to call verify-fa with the 2FA code from the first login requet. This should fail.
     //TODO:    todo!()
+
+    //app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_200_if_correct_code() {
     // Make sure to assert the auth cookie gets set
     //TODO: todo!()
+
+    //app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_401_if_same_code_twice() {
     //TODO: todo!()
+
+    //app.clean_up().await;
 }

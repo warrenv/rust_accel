@@ -4,7 +4,7 @@ use auth_service::{routes::SignupResponse, ErrorResponse};
 #[tokio::test]
 async fn should_return_422_if_malformed_input() {
     let expected = 422;
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     let test_cases = [
         // missing email
@@ -33,12 +33,14 @@ async fn should_return_422_if_malformed_input() {
             test_case
         );
     }
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_201_if_valid_input() {
     let expected = 201;
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
     let user = serde_json::json!({
         "email": get_random_email(),
         "password": "password123",
@@ -68,6 +70,8 @@ async fn should_return_201_if_valid_input() {
             expected
         );
     }
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
@@ -77,7 +81,7 @@ async fn should_return_400_if_invalid_input() {
     // - The email is empty or does not contain '@'
     // - The password is less than 8 characters
 
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     let test_cases = [
         // empty email
@@ -113,13 +117,15 @@ async fn should_return_400_if_invalid_input() {
             "Invalid credentials".to_owned()
         );
     }
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_409_if_email_already_exists() {
     // Call the signup route twice. The second request should fail with a 409 HTTP status code
 
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
     let user = serde_json::json!({
         "email": get_random_email(),
         "password": "password123",
@@ -139,4 +145,6 @@ async fn should_return_409_if_email_already_exists() {
             .error,
         "User already exists".to_owned()
     );
+
+    app.clean_up().await;
 }
