@@ -1,4 +1,4 @@
-use std::error::Error;
+use color_eyre::eyre::{eyre, Context, Result};
 
 use argon2::{
     password_hash::SaltString, Algorithm, Argon2, Params, PasswordHash, PasswordHasher,
@@ -27,18 +27,26 @@ impl UserStore for PostgresUserStore {
     // TODO: Implement all required methods. Note that you will need to make SQL queries against our PostgreSQL instance inside these methods.
     #[tracing::instrument(name = "Adding user to PostgreSQL", skip_all)]
     async fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
-        match sqlx::query!(
+        let password_hash = compute_password_hash(&user.password.as_ref().to_owned())
+            .await
+            //.map_err(UserStoreError::UnexpectedError)?;
+            .map_err(UserStoreError::UnexpectedError)?;
+
+        //match sqlx::query!(
+        sqlx::query!(
             "INSERT INTO users (email, password_hash, requires_2fa) VALUES ($1, $2, $3) RETURNING email",
             user.email.as_ref(),
-            compute_password_hash(user.password.as_ref()).await.unwrap(),
+            password_hash,
+            //compute_password_hash(user.password.as_ref()).await.unwrap(),
             user.requires_2fa
         )
         .fetch_one(&self.pool)
         .await
-        {
-            Ok(_) => (),
-            Err(_) => return Err(UserStoreError::UserAlreadyExists),
-        }
+        .map_err(|e| UserStoreError::UnexpectedError(e.into()))?;
+        //{
+        //    Ok(_) => (),
+        //    Err(_) => return Err(UserStoreError::UserAlreadyExists),
+        //}
 
         Ok(())
         //if self.users.contains_key(&user.email) {
@@ -121,7 +129,8 @@ impl UserStore for PostgresUserStore {
 async fn verify_password_hash(
     expected_password_hash: &str,
     password_candidate: &str,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<()> {
+    //) -> Result<(), Box<dyn Error>> {
     // This line retrieves the current span from the tracing context.
     // The span represents the execution context for the compute_password_hash function.
     let current_span: tracing::Span = tracing::Span::current();
@@ -133,7 +142,8 @@ async fn verify_password_hash(
 
         Argon2::default()
             .verify_password(password_candidate.as_bytes(), &expected_password_hash)
-            .map_err(|e| e.into())
+            .wrap_err("failed to verify password hash")
+        //.map_err(|e| e.into())
     })
 }
 
@@ -144,7 +154,8 @@ async fn verify_password_hash(
 // will need to update the input parameters to be String types instead of &str
 
 #[tracing::instrument(name = "Computing password hash", skip_all)]
-async fn compute_password_hash(password: &str) -> Result<String, Box<dyn Error>> {
+//async fn compute_password_hash(password: &str) -> Result<String, Box<dyn Error>> {
+async fn compute_password_hash(password: &str) -> Result<String> {
     // This line retrieves the current span from the tracing context.
     // The span represents the execution context for the compute_password_hash function.
     let current_span: tracing::Span = tracing::Span::current();
