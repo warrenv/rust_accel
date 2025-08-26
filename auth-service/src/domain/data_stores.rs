@@ -1,4 +1,6 @@
 use crate::domain::{email::Email, password::Password};
+use rand::Rng;
+use uuid::Uuid;
 
 use super::User;
 
@@ -27,4 +29,79 @@ pub trait BannedTokenStore {
 #[derive(Debug)]
 pub enum BannedTokenStoreError {
     UnexpectedError,
+}
+
+// This trait represents the interface all concrete 2FA code stores should implement
+#[async_trait::async_trait]
+pub trait TwoFACodeStore {
+    async fn add_code(
+        &mut self,
+        email: Email,
+        login_attempt_id: LoginAttemptId,
+        code: TwoFACode,
+    ) -> Result<(), TwoFACodeStoreError>;
+    async fn remove_code(&mut self, email: &Email) -> Result<(), TwoFACodeStoreError>;
+    async fn get_code(
+        &self,
+        email: &Email,
+    ) -> Result<(LoginAttemptId, TwoFACode), TwoFACodeStoreError>;
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum TwoFACodeStoreError {
+    LoginAttemptIdNotFound,
+    UnexpectedError,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct LoginAttemptId(String);
+
+impl LoginAttemptId {
+    pub fn parse(id: String) -> Result<Self, String> {
+        match Uuid::parse_str(&id) {
+            Ok(_) => Ok(LoginAttemptId(id)),
+            Err(_) => Err("Cannot parse id".to_owned()),
+        }
+    }
+}
+
+impl Default for LoginAttemptId {
+    fn default() -> Self {
+        Self(Uuid::new_v4().to_string())
+    }
+}
+
+impl AsRef<String> for LoginAttemptId {
+    fn as_ref(&self) -> &String {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct TwoFACode(String);
+
+impl TwoFACode {
+    pub fn parse(code: String) -> Result<Self, String> {
+        let code_as_u32 = code
+            .parse::<u32>()
+            .map_err(|_| "Invalid 2FA code".to_owned())?;
+
+        if (100_000..=999_999).contains(&code_as_u32) {
+            Ok(Self(code))
+        } else {
+            Err("Invalid 2FA code".to_owned())
+        }
+    }
+}
+
+impl Default for TwoFACode {
+    fn default() -> Self {
+        Self(rand::thread_rng().gen_range(100_000..=999_999).to_string())
+    }
+}
+
+impl AsRef<String> for TwoFACode {
+    fn as_ref(&self) -> &String {
+        &self.0
+    }
 }
