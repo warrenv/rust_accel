@@ -25,6 +25,7 @@ impl PostgresUserStore {
 #[async_trait::async_trait]
 impl UserStore for PostgresUserStore {
     // TODO: Implement all required methods. Note that you will need to make SQL queries against our PostgreSQL instance inside these methods.
+    #[tracing::instrument(name = "Adding user to PostgreSQL", skip_all)]
     async fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
         match sqlx::query!(
             "INSERT INTO users (email, password_hash, requires_2fa) VALUES ($1, $2, $3) RETURNING email",
@@ -48,6 +49,7 @@ impl UserStore for PostgresUserStore {
         //}
     }
 
+    #[tracing::instrument(name = "Retrieving user from PostgreSQL", skip_all)]
     async fn get_user(&self, email: &Email) -> Result<User, UserStoreError> {
         let rec = match sqlx::query!(
             "select email, password_hash, requires_2fa from users where email = $1",
@@ -71,6 +73,7 @@ impl UserStore for PostgresUserStore {
         //        }
     }
 
+    #[tracing::instrument(name = "Validating user credentials in PostgreSQL", skip_all)]
     async fn validate_user(
         &self,
         email: &Email,
@@ -113,15 +116,25 @@ impl UserStore for PostgresUserStore {
 // other async tasks, update this function to perform hashing on a
 // separate thread pool using tokio::task::spawn_blocking. Note that you
 // will need to update the input parameters to be String types instead of &str
+
+#[tracing::instrument(name = "Verify password hash", skip_all)]
 async fn verify_password_hash(
     expected_password_hash: &str,
     password_candidate: &str,
 ) -> Result<(), Box<dyn Error>> {
-    let expected_password_hash: PasswordHash<'_> = PasswordHash::new(expected_password_hash)?;
+    // This line retrieves the current span from the tracing context.
+    // The span represents the execution context for the compute_password_hash function.
+    let current_span: tracing::Span = tracing::Span::current();
 
-    Argon2::default()
-        .verify_password(password_candidate.as_bytes(), &expected_password_hash)
-        .map_err(|e| e.into())
+    // This code block ensures that the operations within the closure are executed within the context of the current span.
+    // This is especially useful for tracing operations that are performed in a different thread or task, such as within tokio::task::spawn_blocking.
+    current_span.in_scope(|| {
+        let expected_password_hash: PasswordHash<'_> = PasswordHash::new(expected_password_hash)?;
+
+        Argon2::default()
+            .verify_password(password_candidate.as_bytes(), &expected_password_hash)
+            .map_err(|e| e.into())
+    })
 }
 
 // Helper function to hash passwords before persisting them in the database.
@@ -129,15 +142,22 @@ async fn verify_password_hash(
 // other async tasks, update this function to perform hashing on a
 // separate thread pool using tokio::task::spawn_blocking. Note that you
 // will need to update the input parameters to be String types instead of &str
-async fn compute_password_hash(password: &str) -> Result<String, Box<dyn Error>> {
-    let salt: SaltString = SaltString::generate(&mut rand::thread_rng());
-    let password_hash = Argon2::new(
-        Algorithm::Argon2id,
-        Version::V0x13,
-        Params::new(15000, 2, 1, None)?,
-    )
-    .hash_password(password.as_bytes(), &salt)?
-    .to_string();
 
-    Ok(password_hash)
+#[tracing::instrument(name = "Computing password hash", skip_all)]
+async fn compute_password_hash(password: &str) -> Result<String, Box<dyn Error>> {
+    // This line retrieves the current span from the tracing context.
+    // The span represents the execution context for the compute_password_hash function.
+    let current_span: tracing::Span = tracing::Span::current();
+    current_span.in_scope(|| {
+        let salt: SaltString = SaltString::generate(&mut rand::thread_rng());
+        let password_hash = Argon2::new(
+            Algorithm::Argon2id,
+            Version::V0x13,
+            Params::new(15000, 2, 1, None)?,
+        )
+        .hash_password(password.as_bytes(), &salt)?
+        .to_string();
+
+        Ok(password_hash)
+    })
 }

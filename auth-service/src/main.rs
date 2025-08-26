@@ -13,12 +13,17 @@ use auth_service::{
     services::data_stores::redis_banned_token_store::RedisBannedTokenStore,
     services::data_stores::redis_two_fa_code_store::RedisTwoFACodeStore,
     services::mock_email_client::MockEmailClient,
-    utils::constants::{prod, DATABASE_URL, REDIS_HOST_NAME},
+    utils::{
+        constants::{prod, DATABASE_URL, REDIS_HOST_NAME},
+        init_tracing,
+    },
     Application,
 };
 
 #[tokio::main]
 async fn main() {
+    init_tracing();
+
     let pg_pool = configure_postgresql().await;
     //let user_store = Arc::new(RwLock::new(HashmapUserStore::default()));
     let user_store = Arc::new(RwLock::new(PostgresUserStore::new(pg_pool)));
