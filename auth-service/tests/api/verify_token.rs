@@ -14,6 +14,8 @@ async fn should_return_422_if_malformed_input() {
     let actual = response.status().as_u16();
 
     assert_eq!(actual, expected);
+
+    app.clean_up().await;
 }
 
 #[tokio::test]

@@ -16,6 +16,8 @@ async fn should_return_400_if_jwt_cookie_missing() {
     let actual = response.status().as_u16();
 
     assert_eq!(actual, expected,);
+
+    app.clean_up().await;
 }
 
 #[tokio::test]
