@@ -1,4 +1,5 @@
 use reqwest::Url;
+use secrecy::{ExposeSecret, Secret};
 use sqlx::Connection;
 
 use crate::helpers::get_random_email;
@@ -104,9 +105,10 @@ async fn should_return_200_if_valid_jwt_cookie() {
 async fn should_return_400_if_logout_called_twice_in_a_row() {
     let mut app = TestApp::new().await;
 
-    let auth_cookie = generate_auth_cookie(&Email::parse("foo@example.com".to_owned()).unwrap())
-        .unwrap()
-        .to_string();
+    let auth_cookie =
+        generate_auth_cookie(&Email::parse(Secret::new("foo@example.com".to_string())).unwrap())
+            .unwrap()
+            .to_string();
     println!("auth_cookie: {:?}", auth_cookie);
 
     app.cookie_jar.add_cookie_str(

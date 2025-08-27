@@ -1,3 +1,4 @@
+use secrecy::{ExposeSecret, Secret};
 use std::collections::HashMap;
 
 use crate::domain::{Email, Password};
@@ -33,7 +34,7 @@ impl UserStore for HashmapUserStore {
     ) -> Result<(), UserStoreError> {
         match self.users.get(email) {
             Some(user) => {
-                if user.password.as_ref() == password.as_ref() {
+                if user.password.as_ref().expose_secret() == password.as_ref().expose_secret() {
                     Ok(())
                 } else {
                     Err(UserStoreError::InvalidCredentials)
@@ -53,8 +54,8 @@ mod tests {
         let expected = Ok(());
         let mut store = HashmapUserStore::default();
         let user = User::new(
-            Email::parse("user@example.com".to_owned()).unwrap(),
-            Password::parse("password123".to_owned()).unwrap(),
+            Email::parse(Secret::new("user@example.com".to_string())).unwrap(),
+            Password::parse(Secret::new("password123".to_string())).unwrap(),
             true,
         );
 
@@ -68,8 +69,8 @@ mod tests {
         let expected = Err(UserStoreError::UserAlreadyExists);
         let mut store = HashmapUserStore::default();
         let user = User::new(
-            Email::parse("user@example.com".to_owned()).unwrap(),
-            Password::parse("password123".to_owned()).unwrap(),
+            Email::parse(Secret::new("user@example.com".to_string())).unwrap(),
+            Password::parse(Secret::new("password123".to_string())).unwrap(),
             true,
         );
 
@@ -82,8 +83,8 @@ mod tests {
     #[tokio::test]
     async fn test_get_user_succeeds_when_user_exists() {
         let expected = User::new(
-            Email::parse("user@example.com".to_owned()).unwrap(),
-            Password::parse("password123".to_owned()).unwrap(),
+            Email::parse(Secret::new("user@example.com".to_string())).unwrap(),
+            Password::parse(Secret::new("password123".to_string())).unwrap(),
             true,
         );
         let mut store = HashmapUserStore::default();
@@ -99,8 +100,8 @@ mod tests {
         let expected = Err(UserStoreError::UserNotFound);
         let store = HashmapUserStore::default();
         let user = User::new(
-            Email::parse("user@example.com".to_owned()).unwrap(),
-            Password::parse("password123".to_owned()).unwrap(),
+            Email::parse(Secret::new("user@example.com".to_string())).unwrap(),
+            Password::parse(Secret::new("password123".to_string())).unwrap(),
             true,
         );
 
@@ -113,8 +114,8 @@ mod tests {
     async fn test_validate_user_when_user_is_valid() {
         let expected = Ok(());
         let user = User::new(
-            Email::parse("user@example.com".to_owned()).unwrap(),
-            Password::parse("password123".to_owned()).unwrap(),
+            Email::parse(Secret::new("user@example.com".to_string())).unwrap(),
+            Password::parse(Secret::new("password123".to_string())).unwrap(),
             true,
         );
         let mut store = HashmapUserStore::default();
@@ -129,8 +130,8 @@ mod tests {
     async fn test_validate_user_when_user_does_not_exist() {
         let expected = Err(UserStoreError::UserNotFound);
         let user = User::new(
-            Email::parse("user@example.com".to_owned()).unwrap(),
-            Password::parse("password123".to_owned()).unwrap(),
+            Email::parse(Secret::new("user@example.com".to_string())).unwrap(),
+            Password::parse(Secret::new("password123".to_string())).unwrap(),
             true,
         );
         let store = HashmapUserStore::default();
@@ -144,8 +145,8 @@ mod tests {
     async fn test_validate_user_when_password_does_not_match() {
         let expected = Err(UserStoreError::InvalidCredentials);
         let user = User::new(
-            Email::parse("user@example.com".to_owned()).unwrap(),
-            Password::parse("password123".to_owned()).unwrap(),
+            Email::parse(Secret::new("user@example.com".to_string())).unwrap(),
+            Password::parse(Secret::new("password123".to_string())).unwrap(),
             true,
         );
         let mut store = HashmapUserStore::default();
@@ -154,7 +155,7 @@ mod tests {
         let actual = store
             .validate_user(
                 &user.email,
-                &Password::parse("non_matching_password".to_string()).unwrap(),
+                &Password::parse(Secret::new("non_matching_password".to_string())).unwrap(),
             )
             .await;
 

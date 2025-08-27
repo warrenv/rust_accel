@@ -2,6 +2,7 @@ use crate::helpers::{get_random_email, TestApp};
 use auth_service::domain::Email;
 use auth_service::utils::auth::generate_auth_cookie;
 use auth_service::{utils::constants::JWT_COOKIE_NAME, ErrorResponse};
+use secrecy::{ExposeSecret, Secret};
 
 #[tokio::test]
 async fn should_return_422_if_malformed_input() {
@@ -24,7 +25,8 @@ async fn should_return_200_valid_token() {
     let mut app = TestApp::new().await;
 
     let auth_cookie =
-        generate_auth_cookie(&Email::parse("foo@example.com".to_owned()).unwrap()).unwrap();
+        generate_auth_cookie(&Email::parse(Secret::new("foo@example.com".to_string())).unwrap())
+            .unwrap();
 
     let verify_token_body = serde_json::json!({
         "token": auth_cookie.value()
@@ -44,7 +46,8 @@ async fn should_return_401_if_invalid_token() {
     let mut app = TestApp::new().await;
 
     let auth_cookie =
-        generate_auth_cookie(&Email::parse("foo@example.com".to_owned()).unwrap()).unwrap();
+        generate_auth_cookie(&Email::parse(Secret::new("foo@example.com".to_string())).unwrap())
+            .unwrap();
 
     let verify_token_body = serde_json::json!({
         "token": "a_bad_token"

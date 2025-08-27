@@ -1,4 +1,5 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
+use secrecy::Secret;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -12,8 +13,8 @@ pub async fn verify_2fa(
     State(state): State<AppState>,
     Json(request): Json<Verify2FARequest>,
 ) -> Result<impl IntoResponse, AuthAPIError> {
-    let email =
-        Email::parse(request.email.clone()).map_err(|_| AuthAPIError::InvalidCredentials)?;
+    let email = Email::parse(Secret::new(request.email.clone()))
+        .map_err(|_| AuthAPIError::InvalidCredentials)?;
 
     let login_attempt_id = LoginAttemptId::parse(request.login_attempt_id.clone())
         .map_err(|_| AuthAPIError::InvalidCredentials)?;

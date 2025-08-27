@@ -1,4 +1,5 @@
 use crate::domain::{Email, Password};
+use secrecy::{ExposeSecret, Secret};
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct User {
@@ -24,14 +25,14 @@ mod tests {
     #[test]
     fn test_new_returns_a_user() {
         let expected = User::new(
-            Email::parse("foo@example.com".to_owned()).unwrap(),
-            Password::parse("password123".to_owned()).unwrap(),
+            Email::parse(Secret::new("foo@example.com".to_string())).unwrap(),
+            Password::parse(Secret::new("password123".to_string())).unwrap(),
             true,
         );
 
         let actual = User::new(
-            Email::parse("foo@example.com".to_owned()).unwrap(),
-            Password::parse("password123".to_owned()).unwrap(),
+            Email::parse(Secret::new("foo@example.com".to_string())).unwrap(),
+            Password::parse(Secret::new("password123".to_string())).unwrap(),
             true,
         );
 

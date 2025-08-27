@@ -1,5 +1,6 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use axum_extra::extract::CookieJar;
+use secrecy::Secret;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -63,10 +64,10 @@ pub async fn login(
     }
 }
 
-#[derive(Deserialize, Debug, PartialEq, Serialize)]
+#[derive(Deserialize)]
 pub struct LoginRequest {
-    pub email: String,
-    pub password: String,
+    pub email: Secret<String>,
+    pub password: Secret<String>,
 }
 
 #[tracing::instrument(name = "handle_2fa", skip_all)]
