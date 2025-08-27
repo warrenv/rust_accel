@@ -40,3 +40,9 @@ visit http://localhost:8000 and http://localhost:3000
 podman run --name ps-db -e POSTGRES_PASSWORD=localsecretZ -p 5432:5432 -d postgres:15.2-alpine
 sqlx run migrate
 ```
+
+## manually start postgres and redis
+```bash
+p run --name ps-db -e POSTGRES_PASSWORD=localsecretZ -p 5432:5432 -d postgres:15.2-alpine
+p run --name redis-db -p "6379:6379" -d redis:7.0-alpine
+```
