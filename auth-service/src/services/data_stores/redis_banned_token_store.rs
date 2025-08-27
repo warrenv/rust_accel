@@ -1,3 +1,4 @@
+use color_eyre::eyre::{Context, Result};
 use std::sync::Arc;
 
 use redis::{Commands, Connection};
@@ -20,6 +21,7 @@ impl RedisBannedTokenStore {
 
 #[async_trait::async_trait]
 impl BannedTokenStore for RedisBannedTokenStore {
+    #[tracing::instrument(name = "add_token", skip_all)]
     async fn add_token(&mut self, token: String) -> Result<(), BannedTokenStoreError> {
         // TODO:
         // 1. Create a new key using the get_key helper function.
@@ -30,7 +32,9 @@ impl BannedTokenStore for RedisBannedTokenStore {
 
         let ttl: u64 = TOKEN_TTL_SECONDS
             .try_into()
-            .map_err(|_| BannedTokenStoreError::UnexpectedError)?;
+            .wrap_err("failed to cast TOKEN_TTL_SECONDS to u64")
+            //.map_err(|_| BannedTokenStoreError::UnexpectedError)?;
+            .map_err(BannedTokenStoreError::UnexpectedError)?;
 
         // The expiration time should be set to TOKEN_TTL_SECONDS.
         // NOTE: The TTL is expected to be a u64 so you will have to cast TOKEN_TTL_SECONDS to a u64.
@@ -41,7 +45,9 @@ impl BannedTokenStore for RedisBannedTokenStore {
             .write()
             .await
             .set_ex(&key, true, ttl)
-            .map_err(|_| BannedTokenStoreError::UnexpectedError)?;
+            .wrap_err("failed to set banned token in Redis")
+            //.map_err(|_| BannedTokenStoreError::UnexpectedError)?;
+            .map_err(BannedTokenStoreError::UnexpectedError)?;
 
         Ok(())
 
@@ -53,6 +59,7 @@ impl BannedTokenStore for RedisBannedTokenStore {
         //}
     }
 
+    #[tracing::instrument(name = "contains_token", skip_all)]
     async fn contains_token(&self, token: &str) -> Result<bool, BannedTokenStoreError> {
         // Check if the token exists by calling the exists method on the Redis connection
 
@@ -63,7 +70,9 @@ impl BannedTokenStore for RedisBannedTokenStore {
             .write()
             .await
             .exists(&token_key)
-            .map_err(|_| BannedTokenStoreError::UnexpectedError)?;
+            .wrap_err("failed to check if token exists in Redis") // New!
+            .map_err(BannedTokenStoreError::UnexpectedError)?;
+        //.map_err(|_| BannedTokenStoreError::UnexpectedError)?;
 
         Ok(is_banned)
 
@@ -79,6 +88,7 @@ impl BannedTokenStore for RedisBannedTokenStore {
 // We are using a key prefix to prevent collisions and organize data!
 const BANNED_TOKEN_KEY_PREFIX: &str = "banned_token:";
 
+#[tracing::instrument(name = "get_key", skip_all)]
 fn get_key(token: &str) -> String {
     format!("{}{}", BANNED_TOKEN_KEY_PREFIX, token)
 }

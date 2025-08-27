@@ -1,13 +1,13 @@
-use std::error::Error;
+use color_eyre::eyre::{eyre, Result};
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct Password(String);
 
 impl Password {
-    pub fn parse(password: String) -> Result<Self, Box<dyn Error>> {
+    pub fn parse(password: String) -> Result<Self> {
         match password.len() >= 8 {
             true => Ok(Self(password)),
-            false => Err("invalid password".to_owned().into()),
+            false => Err(eyre!("Failed to parse string to a Password type")), // Err("invalid password".to_owned().into()),
         }
     }
 }

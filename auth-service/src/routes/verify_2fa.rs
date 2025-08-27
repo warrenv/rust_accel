@@ -6,6 +6,7 @@ use crate::{
     domain::{AuthAPIError, Email, LoginAttemptId, TwoFACode},
 };
 
+#[tracing::instrument(name = "verify_2fa", skip_all)]
 #[axum::debug_handler]
 pub async fn verify_2fa(
     State(state): State<AppState>,

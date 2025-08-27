@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 use crate::domain::{Email, Password};
 use crate::{app_state::AppState, domain::User, AuthAPIError};
 
-//#[tracing::instrument(name = "Signup", skip_all, err(Debug))]
 #[tracing::instrument(name = "Signup", skip_all)]
 pub async fn signup(
     State(state): State<AppState>,

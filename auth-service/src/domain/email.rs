@@ -1,13 +1,13 @@
-use std::error::Error;
+use color_eyre::eyre::{eyre, Result};
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Email(String);
 
 impl Email {
-    pub fn parse(email: String) -> Result<Self, Box<dyn Error>> {
+    pub fn parse(email: String) -> Result<Self> {
         match email != "" && email.contains("@") {
             true => Ok(Self(email)),
-            false => Err("invalid email".to_owned().into()),
+            false => Err(eyre!("Failed to parse string to a Password type")), // Err("invalid password".to_owned().into()),
         }
     }
 }
