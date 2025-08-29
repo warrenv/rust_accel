@@ -1,4 +1,4 @@
-use secrecy::{ExposeSecret, Secret};
+use secrecy::ExposeSecret;
 use std::collections::HashMap;
 
 use crate::domain::{Email, Password};

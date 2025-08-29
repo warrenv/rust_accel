@@ -2,7 +2,7 @@ use axum_extra::extract::cookie::{Cookie, SameSite};
 use chrono::Utc;
 use color_eyre::eyre::{eyre, Context, ContextCompat, Result};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Validation};
-use secrecy::{ExposeSecret, Secret};
+use secrecy::ExposeSecret;
 use serde::{Deserialize, Serialize};
 
 use crate::{app_state::BannedTokenStoreType, domain::email::Email};
