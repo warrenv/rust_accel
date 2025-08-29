@@ -1,3 +1,0 @@
-- [ ] finish sprint 4 verify-2fa tests.
-- [x] figure out best test runner instead of this: watchexec -q -c -w src/ -w assets/ -- cargo test
-  - watchexec -q -c -w src/ -w assets/ -- cargo nextest run

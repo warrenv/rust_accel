@@ -13,7 +13,8 @@ cd ..
 #### App service
 ```bash
 cd app-service
-cargo watch -q -c -w src/ -w assets/ -w templates/ -x run
+#cargo watch -q -c -w src/ -w assets/ -w templates/ -x run
+watchexec -q -c -w src/ -w assets/ -w tests/ -- cargo nextest run
 ```
 
 visit http://localhost:8000
@@ -21,7 +22,8 @@ visit http://localhost:8000
 #### Auth service
 ```bash
 cd auth-service
-cargo watch -q -c -w src/ -w assets/ -x run
+#cargo watch -q -c -w src/ -w assets/ -x run
+watchexec -q -c -w src/ -w assets/ -w tests/ -- cargo nextest run
 ```
 
 visit http://localhost:3000
