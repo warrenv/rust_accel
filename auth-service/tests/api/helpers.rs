@@ -1,5 +1,7 @@
 use auth_service::get_redis_client;
 use reqwest::cookie::Jar;
+use reqwest::Client;
+use secrecy::Secret;
 use sqlx::postgres::{PgConnectOptions, PgConnection, PgPoolOptions};
 use sqlx::Connection;
 use sqlx::Executor;
@@ -8,9 +10,11 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
+use wiremock::MockServer;
 
 use auth_service::{
     app_state::{AppState, BannedTokenStoreType, EmailClientType, TwoFACodeStoreType},
+    domain::Email,
     get_postgres_pool,
     //services::data_stores::hashmap_two_fa_code_store::HashmapTwoFACodeStore,
     //services::data_stores::hashmap_user_store::HashmapUserStore,
@@ -19,6 +23,7 @@ use auth_service::{
     services::data_stores::RedisBannedTokenStore,
     services::data_stores::RedisTwoFACodeStore,
     services::mock_email_client::MockEmailClient,
+    services::postmark_email_client::PostmarkEmailClient,
     utils::constants::{test, DATABASE_URL, REDIS_HOST_NAME},
     Application,
 };
@@ -27,6 +32,7 @@ pub struct TestApp {
     pub address: String,
     pub cookie_jar: Arc<Jar>,
     pub http_client: reqwest::Client,
+    pub email_server: MockServer,
     pub banned_token_store: BannedTokenStoreType,
     pub two_fa_code_store: TwoFACodeStoreType,
     pub email_client: EmailClientType,
@@ -55,7 +61,10 @@ impl TestApp {
             RedisTwoFACodeStore::new(redis_connection2.clone()),
         ));
 
-        let email_client = Arc::new(RwLock::new(MockEmailClient));
+        let email_server = MockServer::start().await;
+        let base_url = email_server.uri();
+        let email_client = Arc::new(RwLock::new(configure_postmark_email_client(base_url)));
+        //        let email_client = Arc::new(RwLock::new(MockEmailClient));
 
         let app_state = AppState {
             user_store,
@@ -85,6 +94,7 @@ impl TestApp {
             address,
             cookie_jar,
             http_client,
+            email_server,
             banned_token_store,
             two_fa_code_store,
             email_client,
@@ -255,4 +265,17 @@ fn configure_redis() -> redis::Connection {
         .expect("Failed to get Redis client")
         .get_connection()
         .expect("Failed to get Redis connection")
+}
+
+fn configure_postmark_email_client(base_url: String) -> PostmarkEmailClient {
+    let postmark_auth_token = Secret::new("auth_token".to_owned());
+
+    let sender = Email::parse(Secret::new(test::email_client::SENDER.to_owned())).unwrap();
+
+    let http_client = Client::builder()
+        .timeout(test::email_client::TIMEOUT)
+        .build()
+        .expect("Failed to build HTTP client");
+
+    PostmarkEmailClient::new(base_url, sender, postmark_auth_token, http_client)
 }
