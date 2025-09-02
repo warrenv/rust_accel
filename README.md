@@ -1,6 +1,9 @@
 ## Setup & Building
 ```bash
 cargo install cargo-watch
+cargo install --locked watchexec-cli
+cargo install --locked bacon
+
 cd app-service
 cargo build
 cd ..
