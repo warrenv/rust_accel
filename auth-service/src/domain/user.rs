@@ -1,4 +1,5 @@
 use crate::domain::{Email, Password};
+use secrecy::Secret;
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct User {

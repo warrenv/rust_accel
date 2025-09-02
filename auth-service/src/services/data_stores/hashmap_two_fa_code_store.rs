@@ -1,3 +1,4 @@
+use secrecy::Secret;
 use std::collections::HashMap;
 
 use crate::domain::{
