@@ -3,6 +3,7 @@
 cargo install cargo-watch
 cargo install --locked watchexec-cli
 cargo install --locked bacon
+cargo install cargo-nextest --locked
 
 cd app-service
 cargo build
